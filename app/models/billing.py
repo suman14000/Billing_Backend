@@ -1,84 +1,50 @@
+from sqlalchemy import Column, Integer, String, Float, DateTime
 from datetime import datetime
-from decimal import Decimal
 
-from sqlalchemy import DateTime
-from sqlalchemy import Numeric
-from sqlalchemy import String
-from sqlalchemy import func
-from sqlalchemy.orm import Mapped
-from sqlalchemy.orm import mapped_column
-from sqlalchemy.orm import relationship
-
-from app.database import base
+from app.database import Base
 
 
-class billing(base):
-
+class Billing(Base):
     __tablename__ = "billing"
 
-    id: Mapped[int] = mapped_column(
-        primary_key=True,
-        index=True
-    )
+    id = Column(Integer, primary_key=True, index=True)
 
-    customer_name: Mapped[str] = mapped_column(
+    customer_name = Column(
         String(100),
         nullable=False
     )
 
-    customer_email: Mapped[str] = mapped_column(
-        String(150),
+    customer_email = Column(
+        String(100),
         nullable=False
     )
 
-    customer_phone: Mapped[str | None] = mapped_column(
-        String(20),
-        nullable=True
+    product_name = Column(
+        String(100),
+        nullable=False
     )
 
-    billing_date: Mapped[datetime] = mapped_column(
+    quantity = Column(
+        Integer,
+        nullable=False
+    )
+
+    price = Column(
+        Float,
+        nullable=False
+    )
+
+    total_amount = Column(
+        Float,
+        nullable=False
+    )
+
+    payment_status = Column(
+        String(50),
+        default="Pending"
+    )
+
+    created_at = Column(
         DateTime,
-        nullable=False
-    )
-
-    subtotal: Mapped[Decimal] = mapped_column(
-        Numeric(12, 2),
-        nullable=False,
-        default=0
-    )
-
-    tax: Mapped[Decimal] = mapped_column(
-        Numeric(12, 2),
-        nullable=False,
-        default=0
-    )
-
-    discount: Mapped[Decimal] = mapped_column(
-        Numeric(12, 2),
-        nullable=False,
-        default=0
-    )
-
-    total_amount: Mapped[Decimal] = mapped_column(
-        Numeric(12, 2),
-        nullable=False,
-        default=0
-    )
-
-    billing_status: Mapped[str] = mapped_column(
-        String(30),
-        nullable=False,
-        default="pending"
-    )
-
-    created_at: Mapped[datetime] = mapped_column(
-        DateTime,
-        server_default=func.now(),
-        nullable=False
-    )
-
-    invoices = relationship(
-        "invoice",
-        back_populates="billing",
-        cascade="all, delete-orphan"
+        default=datetime.utcnow
     )
