@@ -33,7 +33,7 @@ sessionlocal = sessionmaker(
     bind=engine
 )
 
-base = declarative_base()
+Base = declarative_base()
 
 def get_db():
     db = sessionlocal()

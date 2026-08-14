@@ -1,6 +1,8 @@
 from sqlalchemy import Column, Integer, String, Float, DateTime
 from datetime import datetime
 
+from sqlalchemy.orm import relationship
+
 from app.database import Base
 
 
@@ -47,4 +49,10 @@ class Billing(Base):
     created_at = Column(
         DateTime,
         default=datetime.utcnow
+    )
+
+    invoices = relationship(
+    "Invoice",
+    back_populates="billing",
+    cascade="all, delete-orphan"
     )

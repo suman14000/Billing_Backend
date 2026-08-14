@@ -12,10 +12,10 @@ from sqlalchemy.orm import Mapped
 from sqlalchemy.orm import mapped_column
 from sqlalchemy.orm import relationship
 
-from app.database import base
+from app.database import Base
 
 
-class invoice(base):
+class Invoice(Base):
 
     __tablename__ = "invoice"
 
@@ -68,12 +68,12 @@ class invoice(base):
     )
 
     billing = relationship(
-        "billing",
+        "Billing",
         back_populates="invoices"
     )
 
     payments = relationship(
-        "payment",
+        "Payment",
         back_populates="invoice",
         cascade="all, delete-orphan"
     )
