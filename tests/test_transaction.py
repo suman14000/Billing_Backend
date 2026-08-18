@@ -6,13 +6,15 @@ from app.main import app
 client = TestClient(app)
 
 
-def test_get_payments():
-    response = client.get("/billing/payments")
+def test_get_transactions():
+    response = client.get("/billing/transactions")
 
     assert response.status_code in [200, 404, 500]
 
 
-def test_get_payment_invalid_id():
-    response = client.get("/billing/payments/999999")
+def test_get_transaction_invalid_id():
+    response = client.get(
+        "/billing/transactions/999999"
+    )
 
     assert response.status_code in [404, 500]

@@ -1,27 +1,35 @@
 from sqlalchemy.orm import Session
 
 from app.models.invoice import Invoice
-from app.schemas.invoice import InvoiceCreate, InvoiceUpdate
+
+from app.schemas.invoice import (
+    InvoiceCreate,
+    InvoiceUpdate,
+)
 
 
 def create_invoice(
     db: Session,
     invoice_data: InvoiceCreate
 ):
-    new_invoice = Invoice(
-        billing_id=invoice_data.billing_id,
+    invoice = Invoice(
+        customer_id=invoice_data.customer_id,
         invoice_number=invoice_data.invoice_number,
         invoice_date=invoice_data.invoice_date,
         due_date=invoice_data.due_date,
+        subtotal=invoice_data.subtotal,
+        tax_amount=invoice_data.tax_amount,
+        discount_amount=invoice_data.discount_amount,
         total_amount=invoice_data.total_amount,
-        status=invoice_data.status
+        invoice_status=invoice_data.invoice_status,
+        notes=invoice_data.notes,
     )
 
-    db.add(new_invoice)
+    db.add(invoice)
     db.commit()
-    db.refresh(new_invoice)
+    db.refresh(invoice)
 
-    return new_invoice
+    return invoice
 
 
 def get_invoice(
@@ -30,15 +38,33 @@ def get_invoice(
 ):
     return (
         db.query(Invoice)
-        .filter(Invoice.id == invoice_id)
+        .filter(
+            Invoice.invoice_id == invoice_id
+        )
         .first()
     )
 
 
 def get_invoices(
-    db: Session
+    db: Session,
+    customer_id: int | None = None,
+    skip: int = 0,
+    limit: int = 100
 ):
-    return db.query(Invoice).all()
+    query = db.query(Invoice)
+
+    if customer_id is not None:
+        query = query.filter(
+            Invoice.customer_id == customer_id
+        )
+
+    return (
+        query
+        .offset(skip)
+        .limit(limit)
+        .all()
+    )
+
 
 
 def update_invoice(
@@ -46,13 +72,12 @@ def update_invoice(
     invoice_id: int,
     invoice_data: InvoiceUpdate
 ):
-    existing_invoice = (
-        db.query(Invoice)
-        .filter(Invoice.id == invoice_id)
-        .first()
+    invoice = get_invoice(
+        db,
+        invoice_id
     )
 
-    if not existing_invoice:
+    if not invoice:
         return None
 
     update_data = invoice_data.model_dump(
@@ -60,28 +85,27 @@ def update_invoice(
     )
 
     for field, value in update_data.items():
-        setattr(existing_invoice, field, value)
+        setattr(invoice, field, value)
 
     db.commit()
-    db.refresh(existing_invoice)
+    db.refresh(invoice)
 
-    return existing_invoice
+    return invoice
 
 
 def delete_invoice(
     db: Session,
     invoice_id: int
 ):
-    existing_invoice = (
-        db.query(Invoice)
-        .filter(Invoice.id == invoice_id)
-        .first()
+    invoice = get_invoice(
+        db,
+        invoice_id
     )
 
-    if not existing_invoice:
+    if not invoice:
         return None
 
-    db.delete(existing_invoice)
+    db.delete(invoice)
     db.commit()
 
-    return existing_invoice
+    return invoice

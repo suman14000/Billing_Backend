@@ -1,73 +1,228 @@
-from datetime import date
-from datetime import datetime
-from decimal import Decimal
+from datetime import date, datetime
 
-from sqlalchemy import Date
-from sqlalchemy import DateTime
-from sqlalchemy import ForeignKey
-from sqlalchemy import Numeric
-from sqlalchemy import String
-from sqlalchemy import func
-from sqlalchemy.orm import Mapped
-from sqlalchemy.orm import mapped_column
-from sqlalchemy.orm import relationship
+from sqlalchemy import (
+    Boolean,
+    Date,
+    DateTime,
+    ForeignKey,
+    Integer,
+    Numeric,
+    String,
+    Text,
+)
+
+from sqlalchemy import Enum as SQLEnum
+from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.database import Base
 
 
-class Payment(Base):
+class PaymentMethod(Base):
+    __tablename__ = "payment_methods"
 
-    __tablename__ = "payment"
-
-    id: Mapped[int] = mapped_column(
+    method_id: Mapped[int] = mapped_column(
+        Integer,
         primary_key=True,
-        index=True
+        autoincrement=True
     )
 
-    invoice_id: Mapped[int] = mapped_column(
+    customer_id: Mapped[int] = mapped_column(
         ForeignKey(
-            "invoice.id",
+            "customers.customer_id",
             ondelete="CASCADE"
         ),
-        nullable=False,
-        index=True
-    )
-
-    payment_date: Mapped[date] = mapped_column(
-        Date,
         nullable=False
     )
 
-    amount: Mapped[Decimal] = mapped_column(
-        Numeric(12, 2),
+    payment_type: Mapped[str] = mapped_column(
+        SQLEnum(
+            "UPI",
+            "Credit Card",
+            "Debit Card",
+            "Net Banking",
+            "Wallet"
+        ),
         nullable=False
     )
 
-    payment_method: Mapped[str] = mapped_column(
-        String(30),
-        nullable=False
-    )
-
-    transaction_id: Mapped[str | None] = mapped_column(
+    provider_name: Mapped[str | None] = mapped_column(
         String(100),
-        unique=True,
-        nullable=True,
-        index=True
+        nullable=True
     )
 
-    payment_status: Mapped[str] = mapped_column(
-        String(30),
-        nullable=False,
-        default="pending"
+    account_number: Mapped[str | None] = mapped_column(
+        String(50),
+        nullable=True
+    )
+
+    expiry_date: Mapped[date | None] = mapped_column(
+        Date,
+        nullable=True
+    )
+
+    is_default: Mapped[bool] = mapped_column(
+        Boolean,
+        default=False
+    )
+
+    status: Mapped[str] = mapped_column(
+        SQLEnum("Active", "Inactive"),
+        default="Active",
+        nullable=False
     )
 
     created_at: Mapped[datetime] = mapped_column(
         DateTime,
-        server_default=func.now(),
+        default=datetime.utcnow
+    )
+
+    customer = relationship(
+        "Customer",
+        back_populates="payment_methods"
+    )
+
+    payments = relationship(
+        "Payment",
+        back_populates="payment_method"
+    )
+
+
+class Payment(Base):
+    __tablename__ = "payments"
+
+    payment_id: Mapped[int] = mapped_column(
+        Integer,
+        primary_key=True,
+        autoincrement=True
+    )
+
+    customer_id: Mapped[int] = mapped_column(
+        ForeignKey(
+            "customers.customer_id",
+            ondelete="CASCADE"
+        ),
         nullable=False
     )
 
-    invoice = relationship(
-        "Invoice",
+    method_id: Mapped[int] = mapped_column(
+        ForeignKey(
+            "payment_methods.method_id",
+            ondelete="CASCADE"
+        ),
+        nullable=False
+    )
+
+    amount: Mapped[float] = mapped_column(
+        Numeric(12, 2),
+        nullable=False
+    )
+
+    currency: Mapped[str] = mapped_column(
+        String(10),
+        default="INR"
+    )
+
+    payment_status: Mapped[str] = mapped_column(
+        SQLEnum(
+            "Pending",
+            "Success",
+            "Failed",
+            "Refunded"
+        ),
+        default="Pending",
+        nullable=False
+    )
+
+    payment_reference: Mapped[str | None] = mapped_column(
+        String(100),
+        unique=True,
+        nullable=True
+    )
+
+    payment_date: Mapped[datetime] = mapped_column(
+        DateTime,
+        default=datetime.utcnow
+    )
+
+    remarks: Mapped[str | None] = mapped_column(
+        Text,
+        nullable=True
+    )
+
+    customer = relationship(
+        "Customer",
         back_populates="payments"
+    )
+
+    payment_method = relationship(
+        "PaymentMethod",
+        back_populates="payments"
+    )
+
+    transactions = relationship(
+        "Transaction",
+        back_populates="payment",
+        cascade="all, delete-orphan"
+    )
+
+    logs = relationship(
+        "PaymentLog",
+        back_populates="payment",
+        cascade="all, delete-orphan"
+    )
+
+
+class PaymentLog(Base):
+    __tablename__ = "payment_logs"
+
+    log_id: Mapped[int] = mapped_column(
+        Integer,
+        primary_key=True,
+        autoincrement=True
+    )
+
+    payment_id: Mapped[int | None] = mapped_column(
+        ForeignKey(
+            "payments.payment_id",
+            ondelete="CASCADE"
+        ),
+        nullable=True
+    )
+
+    transaction_id: Mapped[int | None] = mapped_column(
+        ForeignKey(
+            "transactions.transaction_id",
+            ondelete="CASCADE"
+        ),
+        nullable=True
+    )
+
+    log_message: Mapped[str | None] = mapped_column(
+        Text,
+        nullable=True
+    )
+
+    log_level: Mapped[str] = mapped_column(
+        SQLEnum(
+            "INFO",
+            "WARNING",
+            "ERROR"
+        ),
+        default="INFO",
+        nullable=False
+    )
+
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime,
+        default=datetime.utcnow
+    )
+
+    payment = relationship(
+        "Payment",
+        back_populates="logs"
+    )
+
+    transaction = relationship(
+        "Transaction",
+        back_populates="logs"
     )

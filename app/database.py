@@ -1,45 +1,27 @@
-import os
-
-from dotenv import load_dotenv
 from sqlalchemy import create_engine
-from sqlalchemy.orm import declarative_base
-from sqlalchemy.orm import sessionmaker
+from sqlalchemy.orm import declarative_base, sessionmaker
 
-
-load_dotenv()
-
-
-db_host = os.getenv("db_host")
-db_port = os.getenv("db_port")
-db_user = os.getenv("db_user")
-db_password = os.getenv("db_password")
-db_name = os.getenv("db_name")
-
-database_url = (
-    f"mysql+pymysql://{db_user}:"
-    f"{db_password.replace('@', '%40')}@"
-    f"{db_host}:{db_port}/{db_name}"
-)
+from app.config import settings
 
 engine = create_engine(
-    database_url,
+    settings.DATABASE_URL,
     pool_pre_ping=True,
-    echo=False
 )
 
-sessionlocal = sessionmaker(
+SessionLocal = sessionmaker(
     autocommit=False,
     autoflush=False,
-    bind=engine
+    bind=engine,
 )
 
 Base = declarative_base()
 
-def get_db():
-    db = sessionlocal()
+def init_db():
+    from app.models.billing import User, Customer
+    from app.models.payment import PaymentMethod, Payment, PaymentLog
+    from app.models.transaction import Transaction
+    from app.models.invoice import Invoice
 
-    try:
-        yield db
-
-    finally:
-        db.close()
+    Base.metadata.create_all(
+        bind=engine
+    )
