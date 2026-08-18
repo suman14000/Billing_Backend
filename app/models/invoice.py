@@ -1,43 +1,43 @@
-from datetime import date
-from datetime import datetime
+from datetime import date, datetime
 from decimal import Decimal
 
-from sqlalchemy import Date
-from sqlalchemy import DateTime
-from sqlalchemy import ForeignKey
-from sqlalchemy import Numeric
-from sqlalchemy import String
-from sqlalchemy import func
-from sqlalchemy.orm import Mapped
-from sqlalchemy.orm import mapped_column
-from sqlalchemy.orm import relationship
+from sqlalchemy import (
+    Date,
+    DateTime,
+    ForeignKey,
+    Integer,
+    Numeric,
+    String,
+    Text,
+)
+
+from sqlalchemy import Enum as SQLEnum
+from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.database import Base
 
 
 class Invoice(Base):
+    __tablename__ = "invoices"
 
-    __tablename__ = "invoice"
-
-    id: Mapped[int] = mapped_column(
+    invoice_id: Mapped[int] = mapped_column(
+        Integer,
         primary_key=True,
-        index=True
+        autoincrement=True
     )
 
-    billing_id: Mapped[int] = mapped_column(
+    customer_id: Mapped[int] = mapped_column(
         ForeignKey(
-            "billing.id",
+            "customers.customer_id",
             ondelete="CASCADE"
         ),
-        nullable=False,
-        index=True
+        nullable=False
     )
 
     invoice_number: Mapped[str] = mapped_column(
-        String(50),
+        String(100),
         unique=True,
-        nullable=False,
-        index=True
+        nullable=False
     )
 
     invoice_date: Mapped[date] = mapped_column(
@@ -50,30 +50,59 @@ class Invoice(Base):
         nullable=True
     )
 
-    total_amount: Mapped[Decimal] = mapped_column(
+    subtotal: Mapped[Decimal] = mapped_column(
         Numeric(12, 2),
+        default=0.00,
         nullable=False
     )
 
-    status: Mapped[str] = mapped_column(
-        String(30),
-        nullable=False,
-        default="unpaid"
+    tax_amount: Mapped[Decimal] = mapped_column(
+        Numeric(12, 2),
+        default=0.00,
+        nullable=False
+    )
+
+    discount_amount: Mapped[Decimal] = mapped_column(
+        Numeric(12, 2),
+        default=0.00,
+        nullable=False
+    )
+
+    total_amount: Mapped[Decimal] = mapped_column(
+        Numeric(12, 2),
+        default=0.00,
+        nullable=False
+    )
+
+    invoice_status: Mapped[str] = mapped_column(
+        SQLEnum(
+            "Draft",
+            "Pending",
+            "Paid",
+            "Cancelled",
+            "Overdue"
+        ),
+        default="Draft",
+        nullable=False
+    )
+
+    notes: Mapped[str | None] = mapped_column(
+        Text,
+        nullable=True
     )
 
     created_at: Mapped[datetime] = mapped_column(
         DateTime,
-        server_default=func.now(),
-        nullable=False
+        default=datetime.utcnow
     )
 
-    billing = relationship(
-        "Billing",
-        back_populates="invoices"
+    updated_at: Mapped[datetime] = mapped_column(
+        DateTime,
+        default=datetime.utcnow,
+        onupdate=datetime.utcnow
     )
 
-    payments = relationship(
-        "Payment",
-        back_populates="invoice",
-        cascade="all, delete-orphan"
+    customer = relationship(
+        "Customer",
+        backref="invoices"
     )

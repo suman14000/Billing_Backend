@@ -1,106 +1,110 @@
-from fastapi import HTTPException
 from sqlalchemy.orm import Session
 
-from app.models.billing import Billing
-from app.schemas.billing import BillingCreate, BillingUpdate
+from app.crud.billing import (
+    create_user as crud_create_user,
+    get_user_by_email,
+    create_customer as crud_create_customer,
+    get_customer_by_email,
+    update_customer as crud_update_customer,
+    delete_customer as crud_delete_customer,
+)
+
+from app.schemas.billing import (
+    UserCreate,
+    CustomerCreate,
+    CustomerUpdate,
+)
 
 
-def create_billing(
+def create_user(
     db: Session,
-    billing: BillingCreate
+    user_data: UserCreate
 ):
-    total_amount = billing.quantity * billing.price
-
-    new_billing = Billing(
-        customer_name=billing.customer_name,
-        customer_email=billing.customer_email,
-        product_name=billing.product_name,
-        quantity=billing.quantity,
-        price=billing.price,
-        total_amount=total_amount,
-        payment_status=billing.payment_status
+    
+    existing_user = get_user_by_email(
+        db,
+        user_data.email
     )
 
-    db.add(new_billing)
-    db.commit()
-    db.refresh(new_billing)
-
-    return new_billing
-
-
-def get_all_billings(db: Session):
-
-    return db.query(Billing).all()
-
-
-def get_billing_by_id(
-    db: Session,
-    billing_id: int
-):
-    billing = db.query(Billing).filter(
-        Billing.id == billing_id
-    ).first()
-
-    if not billing:
-        raise HTTPException(
-            status_code=404,
-            detail="Billing record not found"
+    if existing_user:
+        raise ValueError(
+            "User with this email already exists"
         )
 
-    return billing
-
-
-def update_billing(
-    db: Session,
-    billing_id: int,
-    billing_data: BillingUpdate
-):
-    billing = db.query(Billing).filter(
-        Billing.id == billing_id
-    ).first()
-
-    if not billing:
-        raise HTTPException(
-            status_code=404,
-            detail="Billing record not found"
-        )
-
-    billing.customer_name = billing_data.customer_name
-    billing.customer_email = billing_data.customer_email
-    billing.product_name = billing_data.product_name
-    billing.quantity = billing_data.quantity
-    billing.price = billing_data.price
-    billing.payment_status = billing_data.payment_status
-
-    # Recalculate total
-    billing.total_amount = (
-        billing_data.quantity * billing_data.price
+    return crud_create_user(
+        db,
+        user_data
     )
 
-    db.commit()
-    db.refresh(billing)
 
-    return billing
-
-
-def delete_billing(
+def create_customer(
     db: Session,
-    billing_id: int
+    customer_data: CustomerCreate
 ):
-    billing = db.query(Billing).filter(
-        Billing.id == billing_id
-    ).first()
+   
+    existing_customer = get_customer_by_email(
+        db,
+        customer_data.email
+    )
 
-    if not billing:
-        raise HTTPException(
-            status_code=404,
-            detail="Billing record not found"
+    if existing_customer:
+        raise ValueError(
+            "Customer with this email already exists"
         )
 
-    db.delete(billing)
-    db.commit()
+    return crud_create_customer(
+        db,
+        customer_data
+    )
 
-    return {
-        "message": "Billing record deleted successfully",
-        "billing_id": billing_id
-    }
+
+def update_customer(
+    db: Session,
+    customer_id: int,
+    customer_data: CustomerUpdate
+):
+   
+
+    if customer_data.email:
+        existing_customer = get_customer_by_email(
+            db,
+            customer_data.email
+        )
+
+        if (
+            existing_customer
+            and existing_customer.customer_id != customer_id
+        ):
+            raise ValueError(
+                "Customer with this email already exists"
+            )
+
+    customer = crud_update_customer(
+        db,
+        customer_id,
+        customer_data
+    )
+
+    if not customer:
+        raise ValueError(
+            "Customer not found"
+        )
+
+    return customer
+
+
+def delete_customer(
+    db: Session,
+    customer_id: int
+):
+    customer = crud_delete_customer(
+        db,
+        customer_id
+    )
+
+    if not customer:
+        raise ValueError(
+            "Customer not found"
+        )
+
+    return customer

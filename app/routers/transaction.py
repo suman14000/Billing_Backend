@@ -3,43 +3,43 @@ from sqlalchemy.orm import Session
 
 from app.dependencies import get_db
 
-from app.crud.invoice import (
-    get_invoice,
-    get_invoices,
+from app.crud.transaction import (
+    get_transaction,
+    get_transactions,
 )
 
-from app.schemas.invoice import (
-    InvoiceCreate,
-    InvoiceUpdate,
-    InvoiceResponse,
+from app.schemas.transaction import (
+    TransactionCreate,
+    TransactionUpdate,
+    TransactionResponse,
 )
 
-from app.services.invoice_service import (
-    create_invoice,
-    update_invoice,
-    delete_invoice,
+from app.services.transaction_service import (
+    create_transaction,
+    update_transaction,
+    delete_transaction,
 )
 
 
 router = APIRouter(
-    prefix="/billing/invoices",
-    tags=["Invoices"]
+    prefix="/billing/transactions",
+    tags=["Transactions"]
 )
 
 
 @router.post(
     "",
-    response_model=InvoiceResponse,
+    response_model=TransactionResponse,
     status_code=status.HTTP_201_CREATED
 )
-def create_invoice_api(
-    invoice_data: InvoiceCreate,
+def create_transaction_api(
+    transaction_data: TransactionCreate,
     db: Session = Depends(get_db)
 ):
     try:
-        return create_invoice(
+        return create_transaction(
             db,
-            invoice_data
+            transaction_data
         )
 
     except ValueError as exc:
@@ -48,13 +48,12 @@ def create_invoice_api(
             detail=str(exc)
         )
 
-
 @router.get(
     "",
-    response_model=list[InvoiceResponse]
+    response_model=list[TransactionResponse]
 )
-def get_invoices_api(
-    customer_id: int | None = None,
+def get_transactions_api(
+    payment_id: int | None = None,
     skip: int = 0,
     limit: int = 100,
     db: Session = Depends(get_db)
@@ -71,50 +70,50 @@ def get_invoices_api(
             detail="limit must be between 1 and 100"
         )
 
-    return get_invoices(
+    return get_transactions(
         db,
-        customer_id=customer_id,
+        payment_id=payment_id,
         skip=skip,
         limit=limit
     )
 
 
 @router.get(
-    "/{invoice_id}",
-    response_model=InvoiceResponse
+    "/{transaction_id}",
+    response_model=TransactionResponse
 )
-def get_invoice_api(
-    invoice_id: int,
+def get_transaction_api(
+    transaction_id: int,
     db: Session = Depends(get_db)
 ):
-    invoice = get_invoice(
+    transaction = get_transaction(
         db,
-        invoice_id
+        transaction_id
     )
 
-    if not invoice:
+    if not transaction:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
-            detail="Invoice not found"
+            detail="Transaction not found"
         )
 
-    return invoice
+    return transaction
 
 
 @router.put(
-    "/{invoice_id}",
-    response_model=InvoiceResponse
+    "/{transaction_id}",
+    response_model=TransactionResponse
 )
-def update_invoice_api(
-    invoice_id: int,
-    invoice_data: InvoiceUpdate,
+def update_transaction_api(
+    transaction_id: int,
+    transaction_data: TransactionUpdate,
     db: Session = Depends(get_db)
 ):
     try:
-        return update_invoice(
+        return update_transaction(
             db,
-            invoice_id,
-            invoice_data
+            transaction_id,
+            transaction_data
         )
 
     except ValueError as exc:
@@ -125,17 +124,17 @@ def update_invoice_api(
 
 
 @router.delete(
-    "/{invoice_id}",
-    response_model=InvoiceResponse
+    "/{transaction_id}",
+    response_model=TransactionResponse
 )
-def delete_invoice_api(
-    invoice_id: int,
+def delete_transaction_api(
+    transaction_id: int,
     db: Session = Depends(get_db)
 ):
     try:
-        return delete_invoice(
+        return delete_transaction(
             db,
-            invoice_id
+            transaction_id
         )
 
     except ValueError as exc:
